@@ -215,6 +215,15 @@ class Group < ActiveRecord::Base
     self.archived_at.present?
   end
 
+  def reactivate!
+    self.discussions.update_all(archived_at: nil)
+    self.update_attribute(:archived_at, nil)
+    memberships.update_all(archived_at: nil)
+    subgroups.each do |group|
+      group.reactivate!
+    end
+  end
+
   def is_hidden_from_public?
     !is_visible_to_public?
   end

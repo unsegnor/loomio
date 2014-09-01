@@ -50,6 +50,7 @@ ActiveAdmin.register Group do
       group.description
     end
     column :payment_plan
+    column :archived_at
     actions
   end
 
@@ -91,7 +92,11 @@ ActiveAdmin.register Group do
     end
 
     panel('Archive') do
-      link_to 'Archive this group', archive_admin_group_path(group), method: :post, confirm: "Are you sure you wanna archive #{group.name}, pal?"
+      if group.archived_at.present?
+        link_to 'Reactivate this group', '#'
+      else
+        link_to 'Archive this group', archive_admin_group_path(group), method: :post, confirm: "Are you sure you wanna archive #{group.name}, pal?"
+      end
     end
     active_admin_comments
   end
