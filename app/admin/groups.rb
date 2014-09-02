@@ -95,7 +95,7 @@ ActiveAdmin.register Group do
       if group.archived_at.present?
         link_to 'Reactivate this group', '#'
       else
-        link_to 'Archive this group', archive_admin_group_path(group), method: :post, confirm: "Are you sure you wanna archive #{group.name}, pal?"
+        link_to 'Archive this group', archive_admin_group_path(group), method: :post, data: {confirm: "Are you sure you wanna archive #{group.name}, pal?"}
       end
     end
     active_admin_comments
