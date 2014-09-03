@@ -8,7 +8,8 @@ class ThreadMailer < BaseMailer
     @event = event
     @discussion = event.discussion
     @author = event.discussion.author
-    send_thread_email(non_following_subject: @discussion.title)
+    headers['Message-ID'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    send_thread_email
   end
 
   def new_comment(recipient, event)
@@ -17,7 +18,24 @@ class ThreadMailer < BaseMailer
     @comment = event.eventable
     @discussion = @comment.discussion
     @author = @comment.author
+    headers['Message-ID'] = "#{@discussion.id}/#{@event.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['References'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['In-Reply-To'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
     send_thread_email
+  end
+
+  def user_mentioned(recipient, event)
+    @recipient = recipient
+    @event = event
+    @comment = event.eventable
+    @discussion = @comment.discussion
+    @author = @comment.author
+    headers['Message-ID'] = "#{@discussion.id}/#{@event.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['References'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['In-Reply-To'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    send_thread_email(alternative_subject: t('email.mentioned.subject',
+                                             who: @author.name,
+                                             which: @discussion.group.full_name))
   end
 
   def new_vote(recipient, event)
@@ -27,6 +45,9 @@ class ThreadMailer < BaseMailer
     @discussion = @vote.motion.discussion
     @author = @vote.author
     @motion = @vote.motion
+    headers['Message-ID'] = "#{@discussion.id}/#{@event.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['References'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['In-Reply-To'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
     send_thread_email
   end
 
@@ -37,8 +58,11 @@ class ThreadMailer < BaseMailer
     @discussion = @motion.discussion
     @author = @motion.author
     @group = @discussion.group
-    send_thread_email(non_following_subject:
-                      t(:"email.new_motion_created.subject", proposal_title: @motion.title))
+    headers['Message-ID'] = "#{@discussion.id}/#{@event.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['References'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['In-Reply-To'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    send_thread_email(alternative_subject: t(:"email.new_motion_created.subject",
+                                             proposal_title: @motion.title))
   end
 
   def motion_closing_soon(recipient, event)
@@ -48,7 +72,10 @@ class ThreadMailer < BaseMailer
     @author = @motion.author
     @discussion = @motion.discussion
     @group = @discussion.group
-    send_thread_email(non_following_subject:
+    headers['Message-ID'] = "#{@discussion.id}/#{@event.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['References'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['In-Reply-To'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    send_thread_email(alternative_subject:
                       t(:"email.proposal_closing_soon.subject", proposal_title: @motion.title))
   end
 
@@ -59,7 +86,10 @@ class ThreadMailer < BaseMailer
     @discussion = @motion.discussion
     @author = @motion.outcome_author
     @group = @motion.group
-    send_thread_email(non_following_subject:
+    headers['Message-ID'] = "#{@discussion.id}/#{@event.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['References'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['In-Reply-To'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    send_thread_email(alternative_subject:
                       "#{t("email.proposal_outcome.subject")}: #{@motion.name}")
   end
 
@@ -71,13 +101,16 @@ class ThreadMailer < BaseMailer
     @author = @motion.author
     @motion = @motion
     @group = @motion.group
-    send_thread_email(non_following_subject:
+    headers['Message-ID'] = "#{@discussion.id}/#{@event.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['References'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    headers['In-Reply-To'] = "#{@discussion.id}@#{ENV['REPLY_HOSTNAME']}"
+    send_thread_email(alternative_subject:
                       t("email.proposal_closed.subject", which: @motion.name))
   end
 
   private
 
-  def send_thread_email(non_following_subject: nil)
+  def send_thread_email(alternative_subject: nil)
     @following = DiscussionReader.for(discussion: @discussion, user: @recipient).following?
     @utm_hash = utm_hash
 
@@ -86,15 +119,16 @@ class ThreadMailer < BaseMailer
       mail  to: @recipient.email,
             from: from_user_via_loomio(@author),
             reply_to: reply_to_address_with_group_name(discussion: @discussion, user: @recipient),
-            subject: thread_subject(non_following_subject)
+            subject: thread_subject(alternative_subject)
     end
   end
 
-  def thread_subject(non_following_subject)
-    if @following
-      @discussion.title
+  def thread_subject(alternative_subject)
+    if @recipient.email_followed_threads? and @following
+      "[#{@discussion.group.full_name}] #{@discussion.title}"
     else
-      non_following_subject
+      alternative_subject
     end
   end
 end
+
