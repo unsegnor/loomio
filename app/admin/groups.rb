@@ -91,11 +91,13 @@ ActiveAdmin.register Group do
       end
     end
 
-    panel('Archive') do
-      if group.archived_at.present?
-        link_to 'Reactivate this group', '#'
-      else
+    if group.archived_at.nil?
+      panel('Archive') do
         link_to 'Archive this group', archive_admin_group_path(group), method: :post, data: {confirm: "Are you sure you wanna archive #{group.name}, pal?"}
+      end
+    else
+      panel('Unarchive') do
+        link_to 'Unarchive this group', unarchive_admin_group_path(group), method: :post, data: {confirm: "Are you sure you wanna unarchive #{group.name}, pal?"}
       end
     end
     active_admin_comments
@@ -119,6 +121,13 @@ ActiveAdmin.register Group do
     group = Group.friendly.find(params[:id])
     group.archive!
     flash[:notice] = "Archived #{group.name}"
+    redirect_to [:admin, :groups]
+  end
+
+  member_action :unarchive, :method => :post do
+    group = Group.friendly.find(params[:id])
+    group.unarchive!
+    flash[:notice] = "Unarchived #{group.name}"
     redirect_to [:admin, :groups]
   end
 

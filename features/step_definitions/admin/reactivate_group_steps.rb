@@ -1,30 +1,34 @@
 Given(/^there is a user in an archived group$/) do
-  @user = FactoryGirl.create(:user, name: "Marge", email: "marge@large.org")
+  @user = FactoryGirl.create :user
   @user.save!
-  @group = FactoryGirl.create :group
+  @group = FactoryGirl.create :group, privacy: 'public'
   @membership = @group.add_member! @user
+  @discussion = FactoryGirl.create :discussion, group: @group, private: false
+  @subgroup = FactoryGirl.create :group, parent: @group
   @group.archive!
 end
 
-When(/^their group is reactivated$/) do
-  @group.reactivate!
+When(/^their group is unarchived$/) do
+  @group.unarchive!
 end
 
 When(/^they sign\-in$/) do
   visit new_user_session_path
   fill_in 'Email', with: @user.email
-  fill_in 'Password', with: 'password'
+  fill_in 'Password', with: @user.password
   click_on 'sign-in-btn'
 end
 
 Then(/^they should be able to view their group page$/) do
-  pending # express the regexp above with the code you wish you had
+  visit group_path(@group)
+  page.should have_content(@group.name)
 end
 
-Then(/^any subgroups should be reactivated$/) do
-  pending # express the regexp above with the code you wish you had
+Then(/^they should be able to view group discussions$/) do
+  # @discussion.archived_at.should eq nil
+  page.should have_content(@discussion.title)
 end
 
-Then(/^their membership archived_at attribute should be nil$/) do
-  pending # express the regexp above with the code you wish you had
+Then(/^any subgroups should be unarchived$/) do
+  page.should have_content(@subgroup.name)
 end
